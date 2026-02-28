@@ -28,5 +28,8 @@ python-dotenv>=1.0.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 
+# HuggingFace (for pushing model card to HF Hub)
+huggingface-hub>=0.20.0
+
 # Data
 jsonlines>=4.0.0

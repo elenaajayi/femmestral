@@ -1,11 +1,17 @@
 """Femmestral API — multimodal women's health misinformation fact-checker."""
 
-import hashlib
 import os
 
-from fastapi import FastAPI, File, Form, UploadFile
+import weave
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Weave tracing — auto-traces all Mistral calls
+weave.init(os.getenv("WANDB_PROJECT", "femmestral"))
 
 app = FastAPI(
     title="Femmestral",
@@ -34,6 +40,7 @@ class TextRequest(BaseModel):
     text: str
 
 @app.post("/check/text")
+@weave.op()
 async def check_text(request: TextRequest):
     """Fact-check a text message."""
     # TODO: wire up processors → reasoning → rag → safety → output pipeline
@@ -43,6 +50,7 @@ async def check_text(request: TextRequest):
 # --- Image fact-check ---
 
 @app.post("/check/image")
+@weave.op()
 async def check_image(file: UploadFile = File(...)):
     """Fact-check text extracted from an image/screenshot."""
     # TODO: process_image → detect_claims → fact_check → format_response
@@ -52,6 +60,7 @@ async def check_image(file: UploadFile = File(...)):
 # --- Audio fact-check ---
 
 @app.post("/check/audio")
+@weave.op()
 async def check_audio(file: UploadFile = File(...)):
     """Fact-check a voice note."""
     # TODO: process_audio → detect_claims → fact_check → format_response
@@ -61,6 +70,7 @@ async def check_audio(file: UploadFile = File(...)):
 # --- Video fact-check ---
 
 @app.post("/check/video")
+@weave.op()
 async def check_video(file: UploadFile = File(...)):
     """Fact-check a video (extracts audio, then transcribes)."""
     # TODO: process_video → detect_claims → fact_check → format_response
