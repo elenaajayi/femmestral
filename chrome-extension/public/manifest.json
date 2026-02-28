@@ -1,0 +1,16 @@
+{
+  "name": "Femstral Health Aid",
+  "short_name": "Femstral",
+  "description": "Fact-check health claims with evidence-based insights powered by trusted medical sources.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
