@@ -155,7 +155,7 @@ The project is organized around three notebooks:
 
 **`femmestral_finetune.ipynb`** covers the full fine-tuning and evaluation workflow: data preparation, QLoRA training on Mistral 7B via Unsloth, the RAG pipeline, and the held-out evaluation across 7 labeled claims. This is the primary training artifact and the source of the published model weights.
 
-**`WomenFalseInformation_full_fixed.ipynb`** is a companion analysis notebook built by a team member. It implements a multi-stage misinformation detection pipeline using Mistral for routing and classification (via the Mistral API, configurable via the `MISTRAL_MODEL` environment variable to point at the fine-tuned Ministral 3B adapter) and Gemini 2.5 Flash for claim extraction and evidence grounding via Google Search. The notebook processes claims through eight sequential stages from raw input to a final structured verdict JSON, and its outputs are cached at each stage for reproducibility.
+**`WomenFalseInformation_full_fixed.ipynb`** is a companion analysis notebook built by a Abhi. It implements a multi-stage misinformation detection pipeline using Mistral for routing and classification (via the Mistral API, configurable via the `MISTRAL_MODEL` environment variable to point at the fine-tuned Ministral 3B adapter) and Gemini 2.5 Flash for claim extraction and evidence grounding via Google Search. The notebook processes claims through eight sequential stages from raw input to a final structured verdict JSON, and its outputs are cached at each stage for reproducibility.
 
 **`WomenFalseInformation_video_Vf2.ipynb`** extends the pipeline to video input. It uses Mistral Large for routing, claim extraction, and final verdict generation, and Gemini 2.5 Pro for vision-based frame analysis. Like the full analysis notebook, `MISTRAL_MODEL` can be swapped to point at a fine-tuned adapter.
 
@@ -272,6 +272,7 @@ if input_check["safe"]:
 All training runs and evaluations are tracked in W&B. Every inference call is traced in Weave via `@weave.op()` decorators on `fact_check()`, `retrieve_evidence()`, and `fact_check_pipeline()`, which means the full evidence context, model response, and source list are logged for every call and available for replay.
 
 Full W&B report: https://api.wandb.ai/links/elenaajayi-n-a/s0np94lb
+Hugging face models: https://huggingface.co/elenaajayi/femmestral-mistral-7b-v2 and https://huggingface.co/elenaajayi/femmestral-mistral-7b
 
 ---
 
