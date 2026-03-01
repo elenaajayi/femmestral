@@ -105,10 +105,12 @@ def _efetch(pmids: list[str]) -> list[dict]:
 
 
 def _clean_query(query: str) -> str:
-    """Strip exclamation marks and social media language, keep medical keywords."""
+    """Strip social media language and extract core medical keywords for PubMed."""
     import re
+    # Remove punctuation and social language
     query = re.sub(r"[!?]+", "", query)
-    query = re.sub(r"\b(share|warn|all women|everyone|now|please)\b", "", query, flags=re.IGNORECASE)
+    noise = r"\b(share|warn|all women|everyone|now|please|eating|causes|cause|use|using|from|the|a|an|and|or|is|are|it|this|that|with|after|while|during)\b"
+    query = re.sub(noise, " ", query, flags=re.IGNORECASE)
     query = re.sub(r"\s+", " ", query).strip()
     return query
 
