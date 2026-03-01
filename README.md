@@ -12,13 +12,13 @@
 
 Women's health misinformation does not live on obscure websites. It lives in WhatsApp groups, family chats, and short-form videos shared by people we trust. "The HPV vaccine causes infertility." "Eating papaya causes miscarriage." "You cannot get pregnant while breastfeeding." These claims reach millions of women before a single correction does, and in many communities they shape real health decisions long before a doctor is ever consulted.
 
-General-purpose language models are not built for this problem. They can answer medical questions, but they do not cite live research, they do not produce the same structured output reliably, and they do not format corrections for the platforms where misinformation actually travels. Femmestral is built to close this gap: a fine-tuned Mistral model grounded in live biomedical evidence, filtered through two layers of content safety, and formatted for the way health information actually spreads.
+General-purpose language models are not built for this problem. They can answer medical questions, but they do not cite live research, they do not produce the same structured output reliably, and they do not format corrections for the platforms where misinformation actually travels. Femmestral is built to close this gap: a fine-tuned Mistral model grounded in live biomedical evidence, filtered through two layers of content safety, and a Chrome extension that brings real-time claim detection directly into Reddit.
 
 ---
 
 ## What It Does
 
-Femmestral takes a women's health claim — submitted as text, an image, a voice note, or a video — retrieves live evidence from PubMed and Semantic Scholar, passes it through a fine-tuned Mistral model, verifies the output with NVIDIA Nemotron content safety, and returns a structured verdict with a source citation and a correction short enough to forward on WhatsApp.
+Femmestral takes a women's health claim, retrieves live evidence from PubMed and Semantic Scholar, passes it through a fine-tuned Mistral model, verifies the output with NVIDIA Nemotron content safety, and returns a structured verdict with a source citation and a correction short enough to forward on WhatsApp.
 
 Every inference is traced in Weave. Every training run is tracked in W&B. The output format is enforced by the fine-tuning objective itself, so the model produces the same structure on every call, without exception:
 
@@ -39,13 +39,10 @@ safely. Talk to your doctor before skipping it.
 ## Architecture
 
 ```
-User Input (text / image / audio / video)
+Text Claim
         |
         v
 Nemotron Content Safety  -- input filter via NVIDIA NIM
-        |
-        v
-Claim Extraction         -- OCR for images, ASR for audio/video
         |
         v
 Evidence Retrieval       -- PubMed (NCBI E-utilities) + Semantic Scholar
@@ -57,21 +54,20 @@ Fine-tuned Mistral       -- QLoRA adapter on Mistral 7B or Ministral 3B
 Nemotron Content Safety  -- output filter, blocks harmful responses
         |
         v
-ElevenLabs TTS           -- WhatsApp-shareable audio correction
-        |
-        v
 Structured Response      -- verdict, confidence, evidence grade, citation, shareable text
 ```
 
-The pipeline is fully traced in Weave: every call to `fact_check()`, `retrieve_evidence()`, and `fact_check_pipeline()` is decorated with `@weave.op()`, so the full inference trace is available for debugging and evaluation.
+The pipeline is fully traced in Weave: every call to `fact_check()`, `retrieve_evidence()`, and `fact_check_pipeline()` is decorated with `@weave.op()`, so the full evidence context, model response, and source list are logged for every call and available for replay.
+
+The Chrome extension runs as a separate, self-contained track: it scans Reddit comments in real time using a local multi-signal scoring engine and does not call the API.
 
 ---
 
 ## Fine-Tuning
 
-We fine-tuned two models using QLoRA (Quantized Low-Rank Adaptation): a Mistral 7B Instruct v0.3 and a Ministral 3B. In QLoRA, the base model weights are frozen at 4-bit precision and a small set of adapter layers are trained on top, which makes fine-tuning feasible on a single A100 in under two hours. Training used Unsloth, which delivers roughly 2x throughput over standard HuggingFace PEFT.
+We fine-tuned two models using QLoRA (Quantized Low-Rank Adaptation): Mistral 7B Instruct v0.3 and Ministral 3B. In QLoRA, the base model weights are frozen at 4-bit precision and a small set of adapter layers are trained on top, which makes fine-tuning feasible on a single A100 in under two hours. Training used Unsloth, which delivers roughly 2x throughput over standard HuggingFace PEFT.
 
-Each training example contains a real women's health claim, the top PubMed abstracts retrieved for that claim, and a fully structured target response covering: verdict, confidence level, evidence grade, severity, a two-to-three sentence explanation grounded in the retrieved abstracts, a source citation, and a WhatsApp-shareable correction.
+Each training example contains a real women's health claim, the top PubMed abstracts retrieved for that claim, and a fully structured target response covering: verdict, confidence level, evidence grade, severity, a two-to-three sentence explanation grounded in the retrieved abstracts, a source citation, and a WhatsApp-shareable correction. The dataset contains 240 training examples and 60 held-out evaluation examples across categories including fertility, contraception, vaccines, dietary myths, and cancer screening.
 
 We ran two learning rate experiments on the 7B model:
 
@@ -90,7 +86,7 @@ Evaluation on 7 held-out labeled claims:
 | Format compliance | 100% (7/7) |
 | Avg latency | 2.95s |
 
-Format compliance at 100% reflects the core fine-tuning objective: the model must produce the structured output on every inference, not only when the evidence is clear-cut.
+Format compliance at 100% reflects the core fine-tuning objective: the model must produce the structured output on every inference, not only when the evidence is clear-cut. Full evaluation is in `notebooks/femmestral_finetune.ipynb`.
 
 ---
 
@@ -135,29 +131,25 @@ One implementation detail worth noting: the safety classifier is a chat model, n
 
 ---
 
-## Multimodal Input
+## Chrome Extension
 
-Femmestral handles four input types; all feed into the same retrieval and fact-checking pipeline.
+The Chrome extension brings real-time misinformation detection directly into Reddit, operating entirely client-side without calling the backend API. It targets Reddit comments across all three UI generations — Shreddit (2024+), the redesign, and old Reddit — and injects fact-check badges and panels next to flagged content.
 
-**Text** is submitted directly as a string and passed to the safety filter and evidence retrieval without preprocessing.
+The scoring engine uses seven weighted signal categories: anti-establishment framing, overclaiming language, pseudo-scientific terminology, empowerment-misinfo patterns, unproven treatment claims, authority-undermining language, and product promotion. Each signal carries a base weight; context multipliers are applied on top — advice-giving language multiplies by 1.4x, urgency cues by 1.3x, product recommendations by 1.5x. Subreddit-specific calibration adjusts risk thresholds for communities like r/health versus r/fitness where the baseline claim density differs. Confidence scores are bounded between 35% and 97% by design: the system never presents a verdict as certain.
 
-**Image**: OCR extracts the claim text from a screenshot or photo (for example, a WhatsApp forward or a social media post captured as an image). The extracted text is then treated as a standard text claim.
-
-**Audio**: ASR transcribes a voice note or audio clip and passes the transcript downstream. This is particularly relevant for audio-first communities where health information circulates as voice messages rather than written text.
-
-**Video**: Frames are extracted at regular intervals and passed to a vision-language model to identify and extract any health claims made visually or verbally. The extracted claim then flows through the same pipeline as any other input.
+Each flagged comment receives a color-coded badge (low / medium / high / critical risk), a panel showing the top signals and their weights, recurring myth detection with trusted resource links, and a disclaimer that the output is not medical advice. A floating action button tracks session statistics: comments scanned, comments flagged, misinformation detected, and myths identified.
 
 ---
 
 ## Notebooks
 
-The project is organized around three notebooks:
+The project is organized around three notebooks, which together cover fine-tuning, text-based misinformation analysis, and video processing.
 
-**`femmestral_finetune.ipynb`** covers the full fine-tuning and evaluation workflow: data preparation, QLoRA training on Mistral 7B via Unsloth, the RAG pipeline, and the held-out evaluation across 7 labeled claims. This is the primary training artifact and the source of the published model weights.
+**`femmestral_finetune.ipynb`** covers the full fine-tuning and evaluation workflow: data preparation, QLoRA training on Mistral 7B via Unsloth, the RAG pipeline, held-out evaluation across 7 labeled claims, LoRA adapter upload to HuggingFace, and W&B artifact logging with training metadata. This is the primary training artifact and the source of the published model weights.
 
-**`WomenFalseInformation_full_fixed.ipynb`** is a companion analysis notebook built by a Abhi. It implements a multi-stage misinformation detection pipeline using Mistral for routing and classification (via the Mistral API, configurable via the `MISTRAL_MODEL` environment variable to point at the fine-tuned Ministral 3B adapter) and Gemini 2.5 Flash for claim extraction and evidence grounding via Google Search. The notebook processes claims through eight sequential stages from raw input to a final structured verdict JSON, and its outputs are cached at each stage for reproducibility.
+**`WomenFalseInformation_full_fixed.ipynb`** is a companion analysis notebook built by Abhi. It implements an 8-stage misinformation detection pipeline using Mistral for routing and classification — configurable via the `MISTRAL_MODEL` environment variable, which can point at the fine-tuned Ministral 3B adapter — and Gemini 2.5 Flash for grounded claim extraction and verification via Google Search. The pipeline processes a claim through routing, claim extraction, per-claim grounded verification, and aggregate verdict generation, caching outputs at each stage for reproducibility. The two-step Gemini approach — grounded search call first (returns text), then a second call with tools off (returns strict JSON) — works around an SDK limitation that prevents `response_mime_type=application/json` from being set when Google Search grounding is active.
 
-**`WomenFalseInformation_video_Vf2.ipynb`** extends the pipeline to video input. It uses Mistral Large for routing, claim extraction, and final verdict generation, and Gemini 2.5 Pro for vision-based frame analysis. Like the full analysis notebook, `MISTRAL_MODEL` can be swapped to point at a fine-tuned adapter.
+**`WomenFalseInformation_video_Vf2.ipynb`** extends the pipeline to video input using Mistral Large for routing, claim extraction, and final verdict generation, and Gemini 2.5 Pro for vision-based frame analysis. Like the full analysis notebook, `MISTRAL_MODEL` can be swapped to point at a fine-tuned adapter.
 
 ---
 
@@ -174,38 +166,24 @@ femmestral/
 |-- src/
 |   |-- reasoning/
 |   |   |-- fact_checker.py                    Core fact-check pipeline with Weave tracing
-|   |   |-- claim_detector.py                  Claim extraction from raw input
 |   |
 |   |-- rag/
 |   |   |-- pubmed.py                          PubMed retrieval via NCBI E-utilities
 |   |   |-- semantic_scholar.py                Semantic Scholar retrieval
 |   |
 |   |-- safety/
-|   |   |-- nemotron.py                        NVIDIA Nemotron content safety filter
-|   |   |-- nemotron_eval_results.json         Safety filter evaluation: 12 test cases
-|   |
-|   |-- processors/
-|   |   |-- audio.py                           Audio transcription and claim extraction
-|   |   |-- video.py                           Video frame processing
-|   |   |-- image.py                           Image OCR
-|   |   |-- text.py                            Text preprocessing
-|   |
-|   |-- output/
-|       |-- tts.py                             ElevenLabs audio generation
-|       |-- formatter.py                       Response formatting
+|       |-- nemotron.py                        NVIDIA Nemotron content safety filter
+|       |-- nemotron_eval_results.json         Safety filter evaluation: 12 test cases
 |
-|-- chrome-extension/                          Browser extension for one-click fact-checking
+|-- chrome-extension/                          Browser extension for real-time Reddit scanning
 |-- whatsapp-demo/                             WhatsApp interface demo
-|-- api/
-|   |-- main.py                                FastAPI backend
 |
 |-- data/
-|   |-- train.jsonl                            Training data
-|   |-- eval.jsonl                             Evaluation data
+|   |-- train.jsonl                            240 training examples
+|   |-- eval.jsonl                             60 evaluation examples
 |
 |-- scripts/
-    |-- fine_tune.py                           Fine-tuning script (deprecated; use notebook)
-    |-- eval.py                                Evaluation script (deprecated; use notebook)
+    |-- fine_tune.py                           Fine-tuning script (use notebook for full workflow)
 ```
 
 ---
@@ -229,7 +207,6 @@ Required environment variables:
 ```
 HF_TOKEN=              # HuggingFace token for model access
 NVIDIA_API_KEY=        # NVIDIA NIM API key (build.nvidia.com)
-ELEVENLABS_API_KEY=    # ElevenLabs for audio generation
 WANDB_API_KEY=         # Weights and Biases experiment tracking
 NCBI_API_KEY=          # Optional: bumps PubMed rate limit from 3 to 10 req/sec
 MISTRAL_API_KEY=       # Mistral API key (required for analysis notebooks)
@@ -285,11 +262,10 @@ Hugging face models: https://huggingface.co/elenaajayi/femmestral-mistral-7b-v2 
 | Evidence retrieval | PubMed NCBI E-utilities + Semantic Scholar |
 | Content safety | NVIDIA Nemotron (`nvidia/llama-3.1-nemotron-nano-8b-v1`) via NVIDIA NIM |
 | Experiment tracking | Weights and Biases + Weave |
-| Audio output | ElevenLabs multilingual TTS |
-| Backend | FastAPI |
-| Browser extension | Chrome extension (Manifest v3) |
-| WhatsApp interface | React demo |
+| Browser extension | Chrome extension (Manifest v3) — client-side Reddit scanning |
 | Video analysis | Gemini 2.5 Pro (vision) + Mistral Large (reasoning) |
+| Text analysis | Gemini 2.5 Flash (grounding) + Mistral (routing) |
+| WhatsApp interface | React demo |
 
 ---
 
