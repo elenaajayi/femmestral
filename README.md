@@ -12,7 +12,7 @@
 
 Women's health misinformation does not live on obscure websites. It lives in WhatsApp groups, family chats, and short-form videos shared by people we trust. "The HPV vaccine causes infertility." "Eating papaya causes miscarriage." "You cannot get pregnant while breastfeeding." These claims reach millions of women before a single correction does, and in many communities they shape real health decisions long before a doctor is ever consulted.
 
-General-purpose language models are not built for this problem. They can answer medical questions, but they do not cite live research, they do not produce the same structured output reliably, and they do not format corrections for the platforms where misinformation actually travels. Femmestral is built to close this gap: a fine-tuned Mistral model grounded in live biomedical evidence, filtered through two layers of content safety, and a Chrome extension that brings real-time claim detection directly into Reddit.
+General-purpose language models are not built for this problem. They can answer medical questions, but they do not cite live research, they do not produce the same structured output reliably, and they do not format corrections for the platforms where misinformation actually travels. Femmestral is built to close this gap: fine-tuned Mistral models grounded in live biomedical evidence, filtered through two layers of content safety, and a Chrome extension that brings real-time claim detection directly into Reddit.
 
 ---
 
