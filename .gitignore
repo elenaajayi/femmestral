@@ -10,3 +10,10 @@ dist/
 .wandb/
 wandb/
 node_modules/
+
+# Unimplemented stubs — kept locally, not tracked
+src/reasoning/claim_detector.py
+src/processors/
+src/output/
+scripts/eval.py
+scripts/fine_tune.py
