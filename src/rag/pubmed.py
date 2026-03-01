@@ -104,6 +104,15 @@ def _efetch(pmids: list[str]) -> list[dict]:
     return results
 
 
+def _clean_query(query: str) -> str:
+    """Strip exclamation marks and social media language, keep medical keywords."""
+    import re
+    query = re.sub(r"[!?]+", "", query)
+    query = re.sub(r"\b(share|warn|all women|everyone|now|please)\b", "", query, flags=re.IGNORECASE)
+    query = re.sub(r"\s+", " ", query).strip()
+    return query
+
+
 def search_pubmed(query: str, max_results: int = 3) -> list[dict]:
     """
     Search PubMed for evidence related to a health claim.
@@ -116,7 +125,7 @@ def search_pubmed(query: str, max_results: int = 3) -> list[dict]:
         List of dicts with keys: title, abstract, source, url, evidence_grade
         Sorted by evidence grade (A before B before C).
     """
-    pmids = _esearch(query, max_results)
+    pmids = _esearch(_clean_query(query), max_results)
     results = _efetch(pmids)
 
     # Sort: A > B > C
