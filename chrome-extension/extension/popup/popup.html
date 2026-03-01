@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Femstral Health Aid</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <header class="header">
+      <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" fill="#a855f7"/>
+          <path d="M12 4L5 8v5c0 4.52 3.13 8.75 7 9.8V4z" fill="#7c3aed" opacity="0.3"/>
+          <path d="M9.5 12.5l2 2 3.5-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="logo-text">Femstral</span>
+      </div>
+      <span class="version">v2.0</span>
+    </header>
+
+    <div class="status-card" id="statusCard">
+      <div class="status-indicator">
+        <span class="status-dot active" id="statusDot"></span>
+        <span class="status-text" id="statusText">Active on Reddit</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="enableToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="stats" id="statsSection">
+      <div class="stat">
+        <span class="stat-number" id="claimsScanned">0</span>
+        <span class="stat-label">Scanned</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" id="flagsRaised">0</span>
+        <span class="stat-label">Flagged</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" id="misinfoDetected">0</span>
+        <span class="stat-label">Misinfo</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" id="mythsDetected">0</span>
+        <span class="stat-label">Myths</span>
+      </div>
+    </div>
+
+    <div class="not-reddit" id="notReddit" style="display: none;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 8v4M12 16h.01"/>
+      </svg>
+      <p>Navigate to <strong>reddit.com</strong> to use Femstral Health Aid</p>
+    </div>
+
+    <div class="legend">
+      <h3>Detection System</h3>
+      <div class="legend-item">
+        <span class="legend-dot supported"></span>
+        <div>
+          <strong>Supported</strong>
+          <span>Backed by clinical evidence</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot partial"></span>
+        <div>
+          <strong>Partially Supported</strong>
+          <span>Some evidence, with caveats</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot unsupported"></span>
+        <div>
+          <strong>Not Evidence-Based</strong>
+          <span>No clinical support found</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot misinfo"></span>
+        <div>
+          <strong>Misinformation Signals</strong>
+          <span>Multi-signal risk scoring</span>
+        </div>
+      </div>
+      <div class="legend-item">
+        <span class="legend-dot myth"></span>
+        <div>
+          <strong>Known Recurring Myth</strong>
+          <span>Cross-subreddit myth detected</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="subreddits-monitored">
+      <h3>Monitored Subreddits</h3>
+      <div class="subreddit-tags">
+        <span class="sub-tag">r/PCOS</span>
+        <span class="sub-tag">r/Endo</span>
+        <span class="sub-tag">r/BabyBumps</span>
+        <span class="sub-tag">r/birthcontrol</span>
+        <span class="sub-tag">r/Menopause</span>
+        <span class="sub-tag">r/infertility</span>
+        <span class="sub-tag">r/Healthyhooha</span>
+        <span class="sub-tag">r/WomensHealth</span>
+        <span class="sub-tag">r/TwoXChromosomes</span>
+        <span class="sub-tag">r/Perimenopause</span>
+        <span class="sub-tag">r/TryingForABaby</span>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <a href="https://www.mayoclinic.org" target="_blank" rel="noopener">Mayo Clinic</a>
+      <span class="dot">·</span>
+      <a href="https://www.nih.gov" target="_blank" rel="noopener">NIH</a>
+      <span class="dot">·</span>
+      <a href="https://pubmed.ncbi.nlm.nih.gov" target="_blank" rel="noopener">PubMed</a>
+      <span class="dot">·</span>
+      <a href="https://www.acog.org" target="_blank" rel="noopener">ACOG</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
