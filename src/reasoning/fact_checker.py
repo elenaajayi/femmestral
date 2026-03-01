@@ -3,6 +3,7 @@
 import os
 import weave
 from src.rag.pubmed import search_pubmed
+from src.rag.semantic_scholar import search_semantic_scholar
 
 HF_REPO = os.getenv("HF_REPO", "elenaajayi/femmestral-mistral-7b-v2")
 
@@ -113,15 +114,39 @@ def fact_check(claim_text: str, evidence: list[dict] | None = None) -> dict:
 
 
 @weave.op()
-def fact_check_pipeline(claim_text: str) -> dict:
+def retrieve_evidence(claim_text: str) -> list[dict]:
     """
-    Full pipeline: PubMed retrieval → fine-tuned model → structured verdict.
+    Retrieve evidence from PubMed + Semantic Scholar, deduplicated and sorted.
 
     Args:
         claim_text: The health claim to fact-check
 
     Returns:
-        Full result dict including PubMed sources and model response
+        Combined, deduplicated evidence list sorted by grade (A > B > C)
     """
-    evidence = search_pubmed(claim_text, max_results=3)
+    pubmed_results    = search_pubmed(claim_text, max_results=3)
+    semantic_results  = search_semantic_scholar(claim_text, max_results=3)
+
+    # Merge — PubMed first (higher credibility), then Semantic Scholar
+    combined = pubmed_results + semantic_results
+
+    # Sort by grade
+    grade_order = {"A": 0, "B": 1, "C": 2}
+    combined.sort(key=lambda r: grade_order.get(r["evidence_grade"], 2))
+
+    return combined[:5]  # cap at 5 sources for prompt length
+
+
+@weave.op()
+def fact_check_pipeline(claim_text: str) -> dict:
+    """
+    Full pipeline: PubMed + Semantic Scholar retrieval → fine-tuned model → verdict.
+
+    Args:
+        claim_text: The health claim to fact-check
+
+    Returns:
+        Full result dict including sources and model response
+    """
+    evidence = retrieve_evidence(claim_text)
     return fact_check(claim_text, evidence)
