@@ -49,10 +49,6 @@ def search_semantic_scholar(query: str, max_results: int = 3) -> list[dict]:
             else f"https://www.semanticscholar.org/paper/{paper_id}"
         )
 
-        # Check if PubMed ID exists — if so, skip (already covered by PubMed)
-        if external_ids.get("PubMed"):
-            continue
-
         results.append({
             "title":          paper.get("title", "No title"),
             "abstract":       abstract[:800],

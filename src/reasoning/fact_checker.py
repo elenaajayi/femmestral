@@ -130,11 +130,19 @@ def retrieve_evidence(claim_text: str) -> list[dict]:
     # Merge — PubMed first (higher credibility), then Semantic Scholar
     combined = pubmed_results + semantic_results
 
+    # Deduplicate by URL
+    seen_urls = set()
+    deduped = []
+    for r in combined:
+        if r["url"] not in seen_urls:
+            seen_urls.add(r["url"])
+            deduped.append(r)
+
     # Sort by grade
     grade_order = {"A": 0, "B": 1, "C": 2}
-    combined.sort(key=lambda r: grade_order.get(r["evidence_grade"], 2))
+    deduped.sort(key=lambda r: grade_order.get(r["evidence_grade"], 2))
 
-    return combined[:5]  # cap at 5 sources for prompt length
+    return deduped[:5]  # cap at 5 sources for prompt length
 
 
 @weave.op()
