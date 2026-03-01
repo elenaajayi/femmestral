@@ -269,6 +269,16 @@ Hugging face models: https://huggingface.co/elenaajayi/femmestral-mistral-7b-v2 
 
 ---
 
+## What's Next
+
+The core machine learning pipeline is complete: the fine-tuned model, retrieval-augmented generation, two-stage content safety filtering via NVIDIA Nemotron (`nvidia/llama-3.1-nemotron-nano-8b-v1`), evaluation across held-out claims, and full W&B and Weave tracking across every inference. The Chrome extension is live and scanning Reddit comments in real time using a multi-signal scoring engine with subreddit-specific calibration. Video claim extraction is handled through a dedicated notebook pipeline using Mistral Large for routing and verdict generation and Gemini 2.5 Pro for vision-based frame analysis.
+
+What remains is the application layer. ElevenLabs will convert the WhatsApp correction field into a shareable audio clip, targeting the voice note format that misinformation commonly travels in across messaging platforms. Standalone audio input — voice notes submitted directly, outside of a video — requires a dedicated transcription step before it can enter the existing pipeline. A FastAPI backend will expose the full fact-checking pipeline as a REST API, connecting the fine-tuned model, RAG retrieval, and safety filtering behind a single endpoint that the Chrome extension and WhatsApp demo can call.
+
+Misinformation wins because it meets people where they already are. That is the same bet Femmestral is making.
+
+---
+
 ## Team
 
 Built at the Mistral Worldwide Hackathon 2026.
