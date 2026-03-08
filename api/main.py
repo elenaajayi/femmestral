@@ -167,14 +167,19 @@ def _build_prompt(claim: str, evidence: list[dict]) -> str:
 @weave.op()
 def fact_check_claim(claim_text: str) -> dict:
     """Full pipeline: safety → evidence → model → safety → response."""
-    # 1. Input safety
+    # 1. Input safety — only block non-health content (threats, abuse, etc.)
+    #    Health claims (even false/misleading ones) MUST pass through for fact-checking.
     input_check = filter_input(claim_text)
     if not input_check["safe"]:
-        return {
-            "safe": False,
-            "blocked_reason": input_check["reason"],
-            "verdict": None,
-        }
+        reason = (input_check.get("reason") or "").lower()
+        health_keywords = ["health", "medical", "claim", "misleading", "harm", "vaccine", "cure", "treatment"]
+        is_health_related = any(kw in reason for kw in health_keywords)
+        if not is_health_related:
+            return {
+                "safe": False,
+                "blocked_reason": input_check["reason"],
+                "verdict": None,
+            }
 
     # 2. Evidence retrieval
     evidence = retrieve_evidence(claim_text)
